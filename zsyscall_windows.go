@@ -47,6 +47,7 @@ var (
 	procEscapeCommFunction  = modkernel32.NewProc("EscapeCommFunction")
 	procGetCommModemStatus  = modkernel32.NewProc("GetCommModemStatus")
 	procGetCommState        = modkernel32.NewProc("GetCommState")
+	procGetCommTimeouts     = modkernel32.NewProc("GetCommTimeouts")
 	procGetOverlappedResult = modkernel32.NewProc("GetOverlappedResult")
 	procPurgeComm           = modkernel32.NewProc("PurgeComm")
 	procResetEvent          = modkernel32.NewProc("ResetEvent")
@@ -102,6 +103,14 @@ func getCommModemStatus(handle syscall.Handle, bits *uint32) (res bool) {
 
 func getCommState(handle syscall.Handle, dcb *dcb) (err error) {
 	r1, _, e1 := syscall.Syscall(procGetCommState.Addr(), 2, uintptr(handle), uintptr(unsafe.Pointer(dcb)), 0)
+	if r1 == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
+func getCommTimeouts(handle syscall.Handle, timeouts *commTimeouts) (err error) {
+	r1, _, e1 := syscall.Syscall(procGetCommTimeouts.Addr(), 2, uintptr(handle), uintptr(unsafe.Pointer(timeouts)), 0)
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}

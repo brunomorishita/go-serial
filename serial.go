@@ -49,6 +49,10 @@ type Port interface {
 	// to disable read timeout.
 	SetReadTimeout(t time.Duration) error
 
+	// SetWriteTimeout sets the timeout for the Write operation or use serial.NoTimeout
+	// to disable write timeout.
+	SetWriteTimeout(t time.Duration) error
+
 	// Close the serial port
 	Close() error
 

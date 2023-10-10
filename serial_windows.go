@@ -363,13 +363,15 @@ func (port *windowsPort) GetModemStatusBits() (*ModemStatusBits, error) {
 }
 
 func (port *windowsPort) SetReadTimeout(timeout time.Duration) error {
-	commTimeouts := &commTimeouts{
-		ReadIntervalTimeout:         0xFFFFFFFF,
-		ReadTotalTimeoutMultiplier:  0xFFFFFFFF,
-		ReadTotalTimeoutConstant:    0xFFFFFFFE,
-		WriteTotalTimeoutConstant:   0,
-		WriteTotalTimeoutMultiplier: 0,
+	commTimeouts := commTimeouts{}
+	if err := getCommTimeouts(port.handle, &commTimeouts); err != nil {
+		return &PortError{code: InvalidTimeoutValue, causedBy: err}
 	}
+
+	commTimeouts.ReadIntervalTimeout = 0xFFFFFFFF
+	commTimeouts.ReadTotalTimeoutMultiplier = 0xFFFFFFFF
+	commTimeouts.ReadTotalTimeoutConstant = 0xFFFFFFFF
+
 	if timeout != NoTimeout {
 		ms := timeout.Milliseconds()
 		if ms > 0xFFFFFFFE || ms < 0 {
@@ -378,7 +380,31 @@ func (port *windowsPort) SetReadTimeout(timeout time.Duration) error {
 		commTimeouts.ReadTotalTimeoutConstant = uint32(ms)
 	}
 
-	if err := setCommTimeouts(port.handle, commTimeouts); err != nil {
+	if err := setCommTimeouts(port.handle, &commTimeouts); err != nil {
+		return &PortError{code: InvalidTimeoutValue, causedBy: err}
+	}
+
+	return nil
+}
+
+func (port *windowsPort) SetWriteTimeout(timeout time.Duration) error {
+	commTimeouts := commTimeouts{}
+	if err := getCommTimeouts(port.handle, &commTimeouts); err != nil {
+		return &PortError{code: InvalidTimeoutValue, causedBy: err}
+	}
+
+	commTimeouts.WriteTotalTimeoutMultiplier = 0xFFFFFFFF
+	commTimeouts.WriteTotalTimeoutConstant = 0xFFFFFFFF
+
+	if timeout != NoTimeout {
+		ms := timeout.Milliseconds()
+		if ms > 0xFFFFFFFE || ms < 0 {
+			return &PortError{code: InvalidTimeoutValue}
+		}
+		commTimeouts.WriteTotalTimeoutConstant = uint32(ms)
+	}
+
+	if err := setCommTimeouts(port.handle, &commTimeouts); err != nil {
 		return &PortError{code: InvalidTimeoutValue, causedBy: err}
 	}
 
@@ -474,6 +500,11 @@ func nativeOpen(portName string, mode *Mode) (*windowsPort, error) {
 	}
 
 	if port.SetReadTimeout(NoTimeout) != nil {
+		port.Close()
+		return nil, &PortError{code: InvalidSerialPort}
+	}
+
+	if port.SetWriteTimeout(NoTimeout) != nil {
 		port.Close()
 		return nil, &PortError{code: InvalidSerialPort}
 	}

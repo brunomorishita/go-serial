@@ -132,16 +132,18 @@ func (port *unixPort) Write(p []byte) (n int, err error) {
 				timeout = 0
 			}
 		}
-		res, err := unixutils.Select(fds, nil, fds, timeout)
+		res, err := unixutils.Select(fds, fds, fds, timeout)
 		if err == unix.EINTR {
 			continue
 		}
 		if err != nil {
 			return 0, err
 		}
-		if res.IsWritable(port.closeSignal.ReadFD()) {
+
+		if res.IsReadable(port.closeSignal.ReadFD()) {
 			return 0, &PortError{code: PortClosed}
 		}
+
 		if !res.IsWritable(port.handle) {
 			// Timeout happened
 			return 0, nil

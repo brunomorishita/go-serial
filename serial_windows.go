@@ -370,7 +370,7 @@ func (port *windowsPort) SetReadTimeout(timeout time.Duration) error {
 
 	commTimeouts.ReadIntervalTimeout = 0xFFFFFFFF
 	commTimeouts.ReadTotalTimeoutMultiplier = 0xFFFFFFFF
-	commTimeouts.ReadTotalTimeoutConstant = 0xFFFFFFFF
+	commTimeouts.ReadTotalTimeoutConstant = 0xFFFFFFFE
 
 	if timeout != NoTimeout {
 		ms := timeout.Milliseconds()
@@ -394,7 +394,7 @@ func (port *windowsPort) SetWriteTimeout(timeout time.Duration) error {
 	}
 
 	commTimeouts.WriteTotalTimeoutMultiplier = 0xFFFFFFFF
-	commTimeouts.WriteTotalTimeoutConstant = 0xFFFFFFFF
+	commTimeouts.WriteTotalTimeoutConstant = 0xFFFFFFFE
 
 	if timeout != NoTimeout {
 		ms := timeout.Milliseconds()

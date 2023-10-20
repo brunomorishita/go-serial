@@ -116,7 +116,22 @@ func (port *windowsPort) Write(p []byte) (int, error) {
 		// wait for write to complete
 		err = getOverlappedResult(port.handle, ev, &writed, true)
 	}
-	return int(writed), err
+	switch err {
+	case nil:
+		// operation completed successfully
+	case syscall.ERROR_OPERATION_ABORTED:
+		// port may have been closed
+		return int(writed), &PortError{code: PortClosed, causedBy: err}
+	default:
+		// error happened
+		return int(writed), err
+	}
+	if writed > 0 {
+		return int(writed), nil
+	}
+
+	// Timeout
+	return 0, nil
 }
 
 func (port *windowsPort) Drain() (err error) {
@@ -393,7 +408,7 @@ func (port *windowsPort) SetWriteTimeout(timeout time.Duration) error {
 		return &PortError{code: InvalidTimeoutValue, causedBy: err}
 	}
 
-	commTimeouts.WriteTotalTimeoutMultiplier = 0xFFFFFFFF
+	commTimeouts.WriteTotalTimeoutMultiplier = 0x0
 	commTimeouts.WriteTotalTimeoutConstant = 0xFFFFFFFE
 
 	if timeout != NoTimeout {
